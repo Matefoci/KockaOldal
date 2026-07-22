@@ -56,6 +56,11 @@ const memory = navigator.deviceMemory || (isIOS && cores >= 6 ? 4 : 2);
 
 
 const dpr = window.devicePixelRatio || 1;
+const batteryState = {
+    available: false,
+    level: null,
+    charging: null,
+};
 
 // 3. Többszintű (Tier) kategóriarendszer felállítása
 // -1 = Emergency, 0 = Low, 1 = Mid, 2 = High
@@ -77,6 +82,9 @@ if (emergencyDevice) {
 // Tabletek "leminősítése": a nagy képernyő miatt a Mid-tier beállítások biztonságosabbak számukra
 if (isTablet && tier === 2) tier = 1;
 
+const baseTier = tier;
+let batteryEmergencyActive = false;
+
 
 
 const tierNames = {
@@ -89,30 +97,31 @@ const tierNames = {
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
     [-1]: { // EMERGENCY TIER
-        pixelRatio: Math.min(dpr, 0.8),
+        pixelRatio: Math.min(dpr, 0.65),
         minPixelRatio: 0.55,
         antialias: true,
         shadows: true,
         shadowMapSize: 256,
-        shadowType: THREE.PCFShadowMap,
+        shadowType: THREE.BasicShadowMap,
         exposure: 0.98,
         power: 'low-power',
-        renderPixelBudget: 800_000,
+        renderPixelBudget: 650_000,
         shadowUpdateInterval: 320,
     },
     0: { // LOW TIER
-        pixelRatio: Math.min(dpr, 0.9),
+        pixelRatio: Math.min(dpr, 0.8),
         minPixelRatio: 0.65,
         antialias: true,
         shadows: true,
         shadowMapSize: 384,
-        shadowType: THREE.PCFShadowMap,
+        shadowType: THREE.BasicShadowMap,
         exposure: 1.0,
         power: 'low-power',
-        renderPixelBudget: 900_000,
+        renderPixelBudget: 800_000,
         shadowUpdateInterval: 240,
     },
-    1: { // MID TIER (Tabletek, átlagos mobilok)
+    1: { 
+        // MID TIER (Tabletek, átlagos mobilok)
         pixelRatio: Math.min(dpr, 1.3),
         minPixelRatio: 0.75,
         antialias: true,
@@ -123,9 +132,10 @@ const profiles = {
         power: 'default',
         renderPixelBudget: 1_300_000,
         shadowUpdateInterval: 200,
-        
+      
     },
     2: {
+        
         // HIGH TIER (Erős asztali gépek)
         pixelRatio: Math.min(dpr, 1.6),
         minPixelRatio: 0.85,
@@ -138,17 +148,119 @@ const profiles = {
         renderPixelBudget: 1_800_000,
         shadowUpdateInterval: 100,
        
+       
     }
 };
 
-const profile = profiles[tier];
+function createProfileForTier(selectedTier) {
+    const tierProfile = { ...profiles[selectedTier] };
 
-// Költségvetés-ellenőrzés
-profile.pixelRatio = computeAdaptivePixelRatio(
-    profile.pixelRatio,
-    profile.renderPixelBudget,
-    profile.minPixelRatio
-);
+    tierProfile.pixelRatio = computeAdaptivePixelRatio(
+        tierProfile.pixelRatio,
+        tierProfile.renderPixelBudget,
+        tierProfile.minPixelRatio
+    );
+
+    return tierProfile;
+}
+
+function applyLightVisibilityForTier(selectedTier) {
+    const lowTier = selectedTier <= 0;
+
+    rectReplacementLights.forEach((light, index) => {
+        light.visible = !lowTier || index === 0;
+    });
+
+    pointLights.forEach((light, index) => {
+        light.visible = !lowTier || index <= 1;
+    });
+}
+
+function refreshDebugOverlay() {
+    if (!debugOverlay) return;
+
+    const batteryText = batteryState.available
+        ? `${Math.round((batteryState.level ?? 0) * 100)}%${batteryState.charging ? ' charging' : ''}`
+        : 'n/a';
+
+    debugOverlay.textContent = `
+Tier: ${tier} (${tierNames[tier]})
+Device: ${isIOS ? 'iOS' : isPhone ? 'Phone' : isTablet ? 'Tablet' : 'Desktop'}
+Cores: ${cores} | Memory: ${memory}GB
+DPR: ${dpr.toFixed(2)} | PixelRatio: ${profile.pixelRatio.toFixed(2)}
+Battery: ${batteryText}
+Antialias: ${profile.antialias} | Shadows: ${profile.shadows}
+ShadowMapSize: ${profile.shadowMapSize} | Power: ${profile.power}
+`.trim();
+}
+
+function applyProfileForTier(selectedTier) {
+    tier = selectedTier;
+    profile = createProfileForTier(tier);
+
+    if (renderer) {
+        renderer.setPixelRatio(profile.pixelRatio);
+        renderer.toneMappingExposure = profile.exposure;
+
+        if (profile.shadows) {
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = profile.shadowType;
+            renderer.shadowMap.autoUpdate = false;
+            renderer.shadowMap.needsUpdate = true;
+        } else {
+            renderer.shadowMap.enabled = false;
+        }
+    }
+    /*
+    sun.castShadow = profile.shadows;
+    sun.shadow.mapSize.set(profile.shadowMapSize, profile.shadowMapSize);
+    sun.shadow.radius = tier <= 0 ? 0.8 : 1.6;
+    sun.shadow.camera.updateProjectionMatrix();
+    */
+
+    applyLightVisibilityForTier(tier);
+    refreshDebugOverlay();
+}
+
+function handleBatteryUpdate(battery) {
+    batteryState.available = true;
+    batteryState.level = battery.level;
+    batteryState.charging = battery.charging;
+
+    if (battery.level < 0.69) {
+        if (baseTier > -1 && !batteryEmergencyActive) {
+            batteryEmergencyActive = true;
+            applyProfileForTier(-1);
+            return;
+        }
+
+        refreshDebugOverlay();
+        return;
+    }
+
+    if (batteryEmergencyActive) {
+        batteryEmergencyActive = false;
+        applyProfileForTier(baseTier);
+    } else {
+        refreshDebugOverlay();
+    }
+}
+
+function initBatteryMonitoring() {
+    if (typeof navigator.getBattery !== 'function') return;
+
+    navigator.getBattery()
+        .then((battery) => {
+            handleBatteryUpdate(battery);
+
+            const onBatteryChange = () => handleBatteryUpdate(battery);
+            battery.addEventListener('levelchange', onBatteryChange);
+            battery.addEventListener('chargingchange', onBatteryChange);
+        })
+        .catch(() => {});
+}
+
+let profile = createProfileForTier(tier);
 
 // Renderer inicializálása
 const canvas = document.querySelector("#bg");
@@ -195,22 +307,16 @@ const fpsOverlay = document.createElement("div");
 fpsOverlay.className = "fps-overlay";
 fpsOverlay.textContent = "FPS: --";
 document.body.appendChild(fpsOverlay);
-/*
+
 const debugOverlay = document.createElement("div");
 debugOverlay.className = "fps-overlay";
 debugOverlay.style.top = "60px";
 debugOverlay.style.fontSize = "11px";
 debugOverlay.style.whiteSpace = "pre-line";
-debugOverlay.textContent = `
-Tier: ${tier} (${tierNames[tier]})
-Device: ${isIOS ? 'iOS' : isPhone ? 'Phone' : isTablet ? 'Tablet' : 'Desktop'}
-Cores: ${cores} | Memory: ${memory}GB
-DPR: ${dpr.toFixed(2)} | PixelRatio: ${profile.pixelRatio.toFixed(2)}
-Antialias: ${profile.antialias} | Shadows: ${profile.shadows}
-ShadowMapSize: ${profile.shadowMapSize} | Power: ${profile.power}
-`.trim();
 document.body.appendChild(debugOverlay);
-*/
+refreshDebugOverlay();
+initBatteryMonitoring();
+
 let fpsFrames = 0;
 let fpsLastUpdate = performance.now();
 let shadowDirty = true;
@@ -269,6 +375,9 @@ const rectReplacementLights = rectReplacementConfigs.map(cfg => {
     scene.add(pl);
     return pl;
 });
+
+// A pointLightConfigs és rectReplacementConfigs betöltése UTÁN, tier alapján szűrjük:
+applyLightVisibilityForTier(tier);
 
 // gizmo
 
