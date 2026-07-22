@@ -40,7 +40,7 @@ body{
 
 .content p{
 
-    margin-bottom:24px;
+    margin-bottom:32px;
 
     line-height:1.8;
 
@@ -100,8 +100,9 @@ pre{
 /* ---------- Canvas ---------- */
 
 .canvas-container{
+    margin-top:300px;
 
-    width:80%;
+    width:60%;
 
     aspect-ratio:1;
 
@@ -141,7 +142,7 @@ pre{
 
     .canvas-container{
 
-        max-width:450px;
+        max-width:350px;
 
         margin:auto;
     }
@@ -179,6 +180,7 @@ pre{
         height:280px;
 
         padding:16px;
+        width:60%;
     }
 
     pre{
