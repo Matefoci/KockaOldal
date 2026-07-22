@@ -8,6 +8,9 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf9f7f4);
 scene.fog = new THREE.Fog(0xf9f7f4, 1.5, 45);
 
+const canvas = document.querySelector("#bg");
+const container = canvas?.parentElement || document.body;
+
 
 const sun = new THREE.DirectionalLight(0xfff1e0, 0.8);
 sun.position.set(4.2, 6.2, 3.2);
@@ -31,14 +34,12 @@ camera.position.set(3.3, 1.5, -3.3);
 camera.lookAt(0, 0.1, 0);
 
 
-function computeAdaptivePixelRatio(basePixelRatio, maxRenderPixels, minPixelRatio) {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const requestedPixels = width * height * basePixelRatio * basePixelRatio;
+function computeAdaptivePixelRatio(basePixelRatio, maxRenderPixels, minPixelRatio, renderWidth, renderHeight) {
+    const requestedPixels = renderWidth * renderHeight * basePixelRatio * basePixelRatio;
 
     if (requestedPixels <= maxRenderPixels) return basePixelRatio;
 
-    const scale = Math.sqrt(maxRenderPixels / (width * height));
+    const scale = Math.sqrt(maxRenderPixels / (renderWidth * renderHeight));
     return Math.max(minPixelRatio, scale);
 }
 
@@ -156,9 +157,11 @@ function createProfileForTier(selectedTier) {
     const tierProfile = { ...profiles[selectedTier] };
 
     tierProfile.pixelRatio = computeAdaptivePixelRatio(
-        tierProfile.pixelRatio,
-        tierProfile.renderPixelBudget,
-        tierProfile.minPixelRatio
+    tierProfile.pixelRatio,
+    tierProfile.renderPixelBudget,
+    tierProfile.minPixelRatio,
+    container.clientWidth || window.innerWidth,
+    container.clientHeight || window.innerHeight
     );
 
     return tierProfile;
@@ -176,6 +179,7 @@ function applyLightVisibilityForTier(selectedTier) {
         light.visible = !lowTier || index <= 1;
     });
 }
+/*
 
 function refreshDebugOverlay() {
     if (!debugOverlay) return;
@@ -194,6 +198,7 @@ Antialias: ${profile.antialias} | Shadows: ${profile.shadows}
 ShadowMapSize: ${profile.shadowMapSize} | Power: ${profile.power}
 `.trim();
 }
+*/
 
 function applyProfileForTier(selectedTier) {
     tier = selectedTier;
@@ -220,7 +225,7 @@ function applyProfileForTier(selectedTier) {
     
 
     applyLightVisibilityForTier(tier);
-    refreshDebugOverlay();
+    //refreshDebugOverlay();
 }
 
 function handleBatteryUpdate(battery) {
@@ -228,7 +233,7 @@ function handleBatteryUpdate(battery) {
     batteryState.level = battery.level;
     batteryState.charging = battery.charging;
 
-    if (battery.level < 0.25) {
+    if (battery.level < 0.2) {
         if (baseTier > -1 && !batteryEmergencyActive) {
             batteryEmergencyActive = true;
             applyProfileForTier(-1);
@@ -242,9 +247,10 @@ function handleBatteryUpdate(battery) {
     if (batteryEmergencyActive) {
         batteryEmergencyActive = false;
         applyProfileForTier(baseTier);
-    } else {
+    } /*else {
         refreshDebugOverlay();
     }
+        */
 }
 
 function initBatteryMonitoring() {
@@ -264,8 +270,6 @@ function initBatteryMonitoring() {
 let profile = createProfileForTier(tier);
 
 // Renderer inicializálása
-const canvas = document.querySelector("#bg");
-const container = canvas?.parentElement || document.body;
 const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: profile.antialias,
@@ -298,6 +302,7 @@ loader.setKTX2Loader(ktx2Loader);
 
 
 // ----- Debug overlay -----
+/*
 const fpsOverlay = document.createElement("div");
 fpsOverlay.className = "fps-overlay";
 fpsOverlay.textContent = "FPS: --";
@@ -311,6 +316,7 @@ debugOverlay.style.whiteSpace = "pre-line";
 document.body.appendChild(debugOverlay);
 refreshDebugOverlay();
 initBatteryMonitoring();
+*/
 
 let fpsFrames = 0;
 let fpsLastUpdate = performance.now();
@@ -318,6 +324,7 @@ let shadowDirty = true;
 let lastShadowUpdate = 0;
 let lastRenderTime = 0;
 
+/*
 function updateFpsDisplay(now) {
     fpsFrames += 1;
     if (now - fpsLastUpdate < 300) return;
@@ -326,6 +333,7 @@ function updateFpsDisplay(now) {
     fpsFrames = 0;
     fpsLastUpdate = now;
 }
+    */
 
 function requestShadowUpdate() {
     shadowDirty = true;
@@ -515,12 +523,13 @@ function updateCameraProjection() {
     renderer.setSize(width, height, false);
 
     const adaptivePixelRatio = computeAdaptivePixelRatio(
-        profile.pixelRatio,
-        profile.renderPixelBudget,
-        profile.minPixelRatio
-    );
+    profile.pixelRatio,
+    profile.renderPixelBudget,
+    profile.minPixelRatio,
+    container.clientWidth || window.innerWidth,
+    container.clientHeight || window.innerHeight
+);
     renderer.setPixelRatio(adaptivePixelRatio);
-
 
     camera.aspect = aspect;
 
@@ -580,13 +589,13 @@ function animate() {
     }
 
     if (profile.shadowUpdateInterval > 0 && now - lastRenderTime < 1000 / 30 && tier === -1) {
-        updateFpsDisplay(now);
+       // updateFpsDisplay(now);
         return;
     }
 
     lastRenderTime = now;
     renderer.render(scene, camera);
-    updateFpsDisplay(now);
+    //updateFpsDisplay(now);
 }
 
 // esemenykezeles
@@ -651,29 +660,7 @@ window.addEventListener("touchmove", (e) => {
 }, { passive: true });
 
 
-document.addEventListener(
-    "visibilitychange",
-    ()=>{
 
-        if(document.hidden){
-
-            stopAnimation();
-
-        }else{
-
-            startAnimation();
-
-        }
-
-    }
-);
-
-window.addEventListener("pagehide", stopAnimation);
-window.addEventListener("pageshow", () => {
-    if (!document.hidden) {
-        startAnimation();
-    }
-});
 
 function startAnimation(){
 
@@ -695,6 +682,33 @@ function stopAnimation(){
         animationFrameId=null;
     }
 }
+
+// ===== Láthatóság-figyelés: scroll közben is szüneteltessen, ha a canvas nem látszik =====
+let canvasInView = true;
+
+const visibilityObserver = new IntersectionObserver(
+    (entries) => {
+        entries.forEach((entry) => {
+            canvasInView = entry.isIntersecting;
+
+            if (canvasInView && !document.hidden) {
+                startAnimation();
+            } else {
+                stopAnimation();
+            }
+        });
+    },
+    { threshold: 0.01 } // már akkor is "látható", ha csak 1%-a látszik
+);
+
+window.addEventListener("pagehide", stopAnimation);
+window.addEventListener("pageshow", () => {
+    if (!document.hidden) {
+        startAnimation();
+    }
+});
+
+visibilityObserver.observe(canvas);
 
 
 startAnimation();
