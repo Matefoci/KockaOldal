@@ -101,7 +101,7 @@ pre{
 
 .canvas-container{
 
-    width:100%;
+    width:80%;
 
     aspect-ratio:1;
 
@@ -141,7 +141,7 @@ pre{
 
     .canvas-container{
 
-        max-width:550px;
+        max-width:450px;
 
         margin:auto;
     }
