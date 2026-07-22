@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fa kocka - oktató oldal</title>
+
+    <title>Three.js oktató oldal</title>
+
     <link rel="stylesheet" href="style.css">
 
     <script type="importmap">
@@ -22,81 +24,54 @@
 
     <main class="content">
 
-        <h1>Three.js fa kocka bemutató</h1>
+        <h1>Three.js oktatóanyag</h1>
 
         <p>
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum
-            consequat, sapien at luctus pellentesque, erat nisl faucibus lorem,
-            nec volutpat ipsum risus vitae massa. Integer malesuada libero ut
-            augue convallis, vitae placerat justo tristique. Suspendisse potenti.
-            Donec tincidunt magna vel velit bibendum, sed efficitur libero porta.
+            condimentum lectus et sem tristique, vitae ultrices velit hendrerit.
+            Sed dictum, mauris ut tincidunt ullamcorper, neque massa pulvinar
+            metus, sed suscipit augue lorem vel metus.
         </p>
 
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum
-            consequat, sapien at luctus pellentesque, erat nisl faucibus lorem,
-            nec volutpat ipsum risus vitae massa. Integer malesuada libero ut
-            augue convallis, vitae placerat justo tristique. Suspendisse potenti.
-            Donec tincidunt magna vel velit bibendum, sed efficitur libero porta.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse
+            potenti. Donec eget tincidunt erat. Nulla facilisi. Vestibulum
+            consectetur, purus sed luctus interdum, mauris velit cursus nibh,
+            vitae porta nisl lorem nec magna.
         </p>
 
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum
-            consequat, sapien at luctus pellentesque, erat nisl faucibus lorem,
-            nec volutpat ipsum risus vitae massa. Integer malesuada libero ut
-            augue convallis, vitae placerat justo tristique. Suspendisse potenti.
-            Donec tincidunt magna vel velit bibendum, sed efficitur libero porta.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
+            vitae velit eget velit pellentesque placerat. Sed commodo, orci sed
+            laoreet commodo, ligula magna ultricies ipsum, vitae feugiat justo
+            lorem eu nisl.
         </p>
 
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum
-            consequat, sapien at luctus pellentesque, erat nisl faucibus lorem,
-            nec volutpat ipsum risus vitae massa. Integer malesuada libero ut
-            augue convallis, vitae placerat justo tristique. Suspendisse potenti.
-            Donec tincidunt magna vel velit bibendum, sed efficitur libero porta.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque
+            habitant morbi tristique senectus et netus et malesuada fames ac
+            turpis egestas.
         </p>
 
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque
-            fermentum velit sed lorem ullamcorper, a feugiat sem cursus.
-            Phasellus eget libero vitae orci dignissim tincidunt. Mauris
-            vestibulum magna at turpis vulputate, vitae luctus sem tincidunt.
-            Sed posuere felis non purus faucibus, sed tincidunt turpis bibendum.
-        </p>
-
-        <p>
-           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum
-            consequat, sapien at luctus pellentesque, erat nisl faucibus lorem,
-            nec volutpat ipsum risus vitae massa. Integer malesuada libero ut
-            augue convallis, vitae placerat justo tristique. Suspendisse potenti.
-            Donec tincidunt magna vel velit bibendum, sed efficitur libero porta.
-        </p>
-
-        <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla
-            facilisi. Aliquam erat volutpat. Curabitur posuere magna ut orci
-            facilisis, id cursus sapien aliquet. Donec varius, lacus non
-            fermentum eleifend, augue risus maximus massa, vitae interdum
-            nulla erat at neque.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur
+            pulvinar, ipsum sit amet tincidunt feugiat, odio nisi vestibulum
+            lorem, quis elementum tortor risus sed erat.
         </p>
 
     </main>
 
-
     <aside class="sidebar">
 
-        <h2>Kód példa</h2>
+        <h2>Példa kód</h2>
 
         <div class="code-window">
 <pre>
-import * as THREE from "three";
-
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
     75,
-    window.innerWidth /
-    window.innerHeight,
+    width / height,
     0.1,
     1000
 );
@@ -106,40 +81,12 @@ const renderer =
         canvas: bg
     });
 
-const geometry =
-    new THREE.BoxGeometry();
-
-const material =
-    new THREE.MeshStandardMaterial({
-        color: 0x8b4513
-    });
-
-const cube =
-    new THREE.Mesh(
-        geometry,
-        material
-    );
-
-scene.add(cube);
-
-camera.position.z = 3;
-
 function animate(){
     requestAnimationFrame(animate);
-
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-
-    renderer.render(
-        scene,
-        camera
-    );
+    renderer.render(scene,camera);
 }
-
-animate();
 </pre>
         </div>
-
 
         <div class="canvas-container">
             <canvas id="bg"></canvas>
@@ -148,12 +95,6 @@ animate();
     </aside>
 
 </div>
-
-
-<div class="fps-overlay">
-    FPS: 60
-</div>
-
 
 <script type="module" src="gemini.js"></script>
 
