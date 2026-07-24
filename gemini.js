@@ -319,7 +319,7 @@ refreshDebugOverlay();
 */
 
 initBatteryMonitoring();
-/*
+
 let fpsFrames = 0;
 let fpsLastUpdate = performance.now();
 let shadowDirty = true;
@@ -336,7 +336,7 @@ function updateFpsDisplay(now) {
     fpsLastUpdate = now;
 }
     
-*/
+
 function requestShadowUpdate() {
     shadowDirty = true;
 }
