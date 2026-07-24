@@ -714,7 +714,7 @@ const visibilityObserver = new IntersectionObserver(
             }
         });
     },
-    { threshold: 0.5 } // már akkor is "látható", ha csak 1%-a látszik
+    { threshold: 0.8 } // már akkor is "látható", ha csak 1%-a látszik
 );
 
 window.addEventListener("pagehide", stopAnimation);
