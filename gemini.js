@@ -1,7 +1,9 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+//import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 
 const scene = new THREE.Scene();
@@ -28,7 +30,7 @@ sun.shadow.camera.far = 20;
 scene.add(sun);
 
 
-const DEFAULT_FOV = 22;
+const DEFAULT_FOV = 22; //22
 const camera = new THREE.PerspectiveCamera(DEFAULT_FOV, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(3.3, 1.5, -3.3);
 camera.lookAt(0, 0.1, 0);
@@ -67,6 +69,8 @@ const batteryState = {
 // -1 = Emergency, 0 = Low, 1 = Mid, 2 = High
 let tier = 2;
 
+
+
 const emergencyDevice =
     memory <= 1 ||
     cores <= 2 ||
@@ -98,7 +102,7 @@ const tierNames = {
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
     [-1]: { // EMERGENCY TIER
-        pixelRatio: Math.min(dpr, 0.65),
+        basePixelRatio: Math.min(dpr, 0.65),
         minPixelRatio: 0.55,
         antialias: true,
         shadows: true,
@@ -110,7 +114,7 @@ const profiles = {
         shadowUpdateInterval: 320,
     },
     0: { // LOW TIER
-        pixelRatio: Math.min(dpr, 0.8),
+        basePixelRatio: Math.min(dpr, 0.8),
         minPixelRatio: 0.65,
         antialias: true,
         shadows: true,
@@ -123,7 +127,7 @@ const profiles = {
     },
     1: { 
         // MID TIER (Tabletek, átlagos mobilok)
-        pixelRatio: Math.min(dpr, 1.3),
+        basePixelRatio: Math.min(dpr, 1.3),
         minPixelRatio: 0.75,
         antialias: true,
         shadows: true,
@@ -138,7 +142,7 @@ const profiles = {
     2: {
         
         // HIGH TIER (Erős asztali gépek)
-        pixelRatio: Math.min(dpr, 1.6),
+        basePixelRatio: Math.min(dpr, 1.6),
         minPixelRatio: 0.85,
         antialias: true,
         shadows: true,
@@ -157,14 +161,30 @@ function createProfileForTier(selectedTier) {
     const tierProfile = { ...profiles[selectedTier] };
 
     tierProfile.pixelRatio = computeAdaptivePixelRatio(
-    tierProfile.pixelRatio,
-    tierProfile.renderPixelBudget,
-    tierProfile.minPixelRatio,
-    container.clientWidth || window.innerWidth,
-    container.clientHeight || window.innerHeight
+        tierProfile.basePixelRatio,
+        tierProfile.renderPixelBudget,
+        tierProfile.minPixelRatio,
+        container.clientWidth || window.innerWidth,
+        container.clientHeight || window.innerHeight
     );
 
     return tierProfile;
+}
+let profile = createProfileForTier(tier);
+
+function applyRendererSettingsForProfile(currentProfile) {
+    renderer.setPixelRatio(currentProfile.pixelRatio);
+    renderer.toneMappingExposure = currentProfile.exposure;
+
+    if (currentProfile.shadows) {
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = currentProfile.shadowType;
+        renderer.shadowMap.autoUpdate = false;
+        renderer.shadowMap.needsUpdate = true;
+        return;
+    }
+
+    renderer.shadowMap.enabled = false;
 }
 
 // Fények csökkentése, Low és Emergency tier-nél keveseebb fény
@@ -205,17 +225,7 @@ function applyProfileForTier(selectedTier) {
     profile = createProfileForTier(tier);
 
     if (renderer) {
-        renderer.setPixelRatio(profile.pixelRatio);
-        renderer.toneMappingExposure = profile.exposure;
-
-        if (profile.shadows) {
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = profile.shadowType;
-            renderer.shadowMap.autoUpdate = false;
-            renderer.shadowMap.needsUpdate = true;
-        } else {
-            renderer.shadowMap.enabled = false;
-        }
+        applyRendererSettingsForProfile(profile);
     }
     
     sun.castShadow = profile.shadows;
@@ -240,14 +250,14 @@ function handleBatteryUpdate(battery) {
             return;
         }
 
-        refreshDebugOverlay();
+        //refreshDebugOverlay();
         return;
     }
 
     if (batteryEmergencyActive) {
         batteryEmergencyActive = false;
         applyProfileForTier(baseTier);
-    } /*else {
+    } /*{
         refreshDebugOverlay();
     }
         */
@@ -267,7 +277,7 @@ function initBatteryMonitoring() {
         .catch(() => {});
 }
 
-let profile = createProfileForTier(tier);
+
 
 // Renderer inicializálása
 const renderer = new THREE.WebGLRenderer({
@@ -277,28 +287,19 @@ const renderer = new THREE.WebGLRenderer({
     powerPreference: profile.power
 });
 
-renderer.setPixelRatio(profile.pixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = profile.exposure;
-
-if (profile.shadows) {
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = profile.shadowType;
-    renderer.shadowMap.autoUpdate = false;
-    renderer.shadowMap.needsUpdate = true;
-} else {
-    renderer.shadowMap.enabled = false;
-}
+applyRendererSettingsForProfile(profile);
 
 
-const ktx2Loader = new KTX2Loader();
-ktx2Loader.setTranscoderPath(import.meta.env.BASE_URL + 'basis/');
+//const ktx2Loader = new KTX2Loader();
+//ktx2Loader.setTranscoderPath(import.meta.env.BASE_URL + 'basis/');
 //ktx2Loader.setTranscoderPath('https://unpkg.com/three/examples/jsm/libs/basis/');
-ktx2Loader.detectSupport(renderer);
+//ktx2Loader.detectSupport(renderer);
 const loader = new GLTFLoader();
-loader.setKTX2Loader(ktx2Loader);
+loader.setMeshoptDecoder(MeshoptDecoder);
+//loader.setKTX2Loader(ktx2Loader);
 
 
 // ----- Debug overlay -----
@@ -315,16 +316,17 @@ debugOverlay.style.fontSize = "11px";
 debugOverlay.style.whiteSpace = "pre-line";
 document.body.appendChild(debugOverlay);
 refreshDebugOverlay();
-initBatteryMonitoring();
 */
 
+initBatteryMonitoring();
+/*
 let fpsFrames = 0;
 let fpsLastUpdate = performance.now();
 let shadowDirty = true;
 let lastShadowUpdate = 0;
 let lastRenderTime = 0;
 
-/*
+
 function updateFpsDisplay(now) {
     fpsFrames += 1;
     if (now - fpsLastUpdate < 300) return;
@@ -333,8 +335,8 @@ function updateFpsDisplay(now) {
     fpsFrames = 0;
     fpsLastUpdate = now;
 }
-    */
-
+    
+*/
 function requestShadowUpdate() {
     shadowDirty = true;
 }
@@ -392,18 +394,19 @@ function createRotationGizmo(target){
     gizmoGroup = new THREE.Group();
     target.add(gizmoGroup);
 
+    // ÚJ: ellensúlyozzuk a szülő (kvantált mesh) skálázását
+    const inverseScale = 1 / target.scale.x; // uniform skálázás esetén (x=y=z) ez elég
+    gizmoGroup.scale.setScalar(inverseScale);
 
     // Tengely
     axis = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.04, 0.04, 1.2, 32),
+        new THREE.CylinderGeometry(0.012, 0.012, 0.3, 32),
         new THREE.MeshStandardMaterial({ color: 0xffffff })
     );
-    axis.position.set(0, 2.6, 0);
+    axis.position.set(0, 0.65, 0);
     axis.castShadow = false;
     axis.receiveShadow = false;
     gizmoGroup.add(axis);
-
-
 }
 
 
@@ -467,9 +470,9 @@ const modelUrls = [
 
     */
 
-    new URL('./models/kocka-ktx2.glb', import.meta.url).href,
-    new URL('./models/plane-ktx2.glb', import.meta.url).href,
-    new URL('./models/Nyil6.glb', import.meta.url).href,
+    new URL('./models/Fa768-optimized.glb', import.meta.url).href,
+    new URL('./models/Vilagosabb256-optimized.glb', import.meta.url).href,
+    new URL('./models/Nyil6-optimized.glb', import.meta.url).href,
 ];
 
 
@@ -483,13 +486,19 @@ Promise.all([
     scene.add(kockaGltf.scene);
     applyWoodMaterial(kockaGltf.scene);
     cubeStructure = kockaGltf.scene.getObjectByName("KockaNoArray") || kockaGltf.scene;
+    console.log("cubeStructure név:", cubeStructure.name, "pozíció:", cubeStructure.position);
+
+    // Írjuk ki az egész hierarchiát, hogy lássuk, milyen nevek maradtak meg
+    kockaGltf.scene.traverse((obj) => {
+        console.log(obj.type, obj.name);
+    });
     baseY = cubeStructure.position.y;
     createRotationGizmo(cubeStructure);
    
 
     // --- Plane ---
     scene.add(planeGltf.scene);
-    applyWoodMaterial(planeGltf.scene, 0xe8dfd0, 0.85); //  0xe8c3b0  0xe8dfd0
+    applyWoodMaterial(planeGltf.scene, null, 0.85); //  0xe8c3b0  0xe8dfd0
     plane = planeGltf.scene.getObjectByName("Plane") || planeGltf.scene;
     plane.receiveShadow = true;
     requestShadowUpdate();
@@ -502,12 +511,19 @@ Promise.all([
         child.castShadow = false;
         child.receiveShadow = false;
     });
-    nyil.scale.setScalar(0.1);
-    nyil.scale.y = 0.08;
-    nyil.position.set(0, 2.8, -1);
+    nyil.scale.setScalar(0.025);
+    //nyil.scale.y = 0.01;
+    nyil.position.set(0, 0.75, -0.15);
     gizmoGroup.add(nyil); 
     nyil.rotation.z += Math.PI; 
 
+    scene.updateMatrixWorld(true);
+    console.log("cubeStructure scale:", cubeStructure.scale);
+    console.log("gizmoGroup LOCAL scale:", gizmoGroup.scale);  // <-- ÚJ: ez mutatja, tényleg megkapta-e az inverseScale-t
+    console.log("gizmoGroup világ-pozíciója:", gizmoGroup.getWorldPosition(new THREE.Vector3()));
+    console.log("nyil világ-pozíciója:", nyil.getWorldPosition(new THREE.Vector3()));  // <-- ÚJ
+    console.log("nyil világ-skálája:", nyil.getWorldScale(new THREE.Vector3()));       // <-- ÚJ
+    console.log("axis világ-pozíciója:", axis.getWorldPosition(new THREE.Vector3()));  // <-- ÚJ, a gizmo tengelyéhez
     
     renderer.compile(scene, camera);
 }).catch((error) => {
@@ -523,11 +539,11 @@ function updateCameraProjection() {
     renderer.setSize(width, height, false);
 
     const adaptivePixelRatio = computeAdaptivePixelRatio(
-    profile.pixelRatio,
-    profile.renderPixelBudget,
-    profile.minPixelRatio,
-    container.clientWidth || window.innerWidth,
-    container.clientHeight || window.innerHeight
+        profile.basePixelRatio,
+        profile.renderPixelBudget,
+        profile.minPixelRatio,
+        container.clientWidth || window.innerWidth,
+        container.clientHeight || window.innerHeight
 );
     renderer.setPixelRatio(adaptivePixelRatio);
 
@@ -589,7 +605,7 @@ function animate() {
     }
 
     if (profile.shadowUpdateInterval > 0 && now - lastRenderTime < 1000 / 30 && tier === -1) {
-       // updateFpsDisplay(now);
+        //updateFpsDisplay(now);
         return;
     }
 
